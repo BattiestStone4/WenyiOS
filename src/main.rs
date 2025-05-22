@@ -11,6 +11,11 @@ mod entry;
 mod mm;
 mod syscall;
 
+use alloc::string::{String, ToString};
+use alloc::vec;
+use alloc::vec::Vec;
+use entry::run_user_app;
+
 #[unsafe(no_mangle)]
 fn main() {
     // Create a init process
@@ -20,17 +25,17 @@ fn main() {
         .unwrap_or_else(|| "Please specify the testcases list by making user_apps")
         .split(',')
         .filter(|&x| !x.is_empty());
+    
+        let command = testcases.collect::<Vec<_>>().join("\n");
+        let args = vec!["/musl/busybox", "sh", "-c", &command];
+        let args: Vec<String> = args.into_iter().map(String::from).collect();
+    
+        let envs = vec![
+            "PATH=/bin".to_string(),
+            "LD_LIBRARY_PATH=/lib:/lib64".to_string(),
+        ];
+    
+        let exit_code = run_user_app(&args, &envs);
+        info!("[kernel] Shell exited with code: {:?}", exit_code);
 
-    for testcase in testcases {
-        let Some(args) = shlex::split(testcase) else {
-            error!("Failed to parse testcase: {:?}", testcase);
-            continue;
-        };
-        if args.is_empty() {
-            continue;
-        }
-        info!("Running user task: {:?}", args);
-        let exit_code = entry::run_user_app(&args, &[]);
-        info!("User task {:?} exited with code: {:?}", args, exit_code);
-    }
 }
