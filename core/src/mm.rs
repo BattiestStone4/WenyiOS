@@ -141,14 +141,15 @@ pub fn load_user_app(
                 .map_err(|_| AxError::InvalidData)?,
         )?;
 
-        if interp_path == "/lib/ld-linux-riscv64-lp64.so.1"
-            || interp_path == "/lib64/ld-linux-loongarch-lp64d.so.1"
-            || interp_path == "/lib64/ld-linux-x86-64.so.2"
-            || interp_path == "/lib/ld-linux-aarch64.so.1"
-        {
-            // TODO: Use soft link
-            interp_path = String::from("/musl/lib/libc.so");
-        }
+        // if interp_path == "/lib/ld-linux-riscv64-lp64.so.1"
+        //     || interp_path == "/lib64/ld-linux-loongarch-lp64d.so.1"
+        //     || interp_path == "/lib64/ld-linux-x86-64.so.2"
+        //     || interp_path == "/lib/ld-linux-aarch64.so.1"
+        //     || interp_path == "/lib/ld-musl-x86_64.so.1"
+        // {
+        //     // TODO: Use soft link
+        //     interp_path = String::from("/musl/lib/libc.so");
+        // }
 
         // Set the first argument to the path of the user app.
         let mut new_args = vec![interp_path];

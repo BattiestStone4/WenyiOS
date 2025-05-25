@@ -16,6 +16,8 @@ fn handle_syscall(tf: &mut TrapFrame, syscall_num: usize) -> isize {
         // fs ctl
         Sysno::ioctl => sys_ioctl(tf.arg0() as _, tf.arg1() as _, tf.arg2().into()),
         Sysno::chdir => sys_chdir(tf.arg0().into()),
+        #[cfg(target_arch = "x86_64")]
+        Sysno::mkdir => sys_mkdir(tf.arg0().into(), tf.arg1() as _),
         Sysno::mkdirat => sys_mkdirat(tf.arg0() as _, tf.arg1().into(), tf.arg2() as _),
         Sysno::getdents64 => sys_getdents64(tf.arg0() as _, tf.arg1().into(), tf.arg2() as _),
         Sysno::linkat => sys_linkat(
@@ -54,6 +56,12 @@ fn handle_syscall(tf: &mut TrapFrame, syscall_num: usize) -> isize {
         Sysno::write => sys_write(tf.arg0() as _, tf.arg1().into(), tf.arg2() as _),
         Sysno::writev => sys_writev(tf.arg0() as _, tf.arg1().into(), tf.arg2() as _),
         Sysno::lseek => sys_lseek(tf.arg0() as _, tf.arg1() as _, tf.arg2() as _),
+        Sysno::sendfile => sys_sendfile(
+            tf.arg0() as _,
+            tf.arg1() as _,
+            tf.arg2().into(),
+            tf.arg3() as _,
+        ),
 
         // fs mount
         Sysno::mount => sys_mount(
