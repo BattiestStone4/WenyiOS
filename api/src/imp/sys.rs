@@ -37,7 +37,7 @@ const UTSNAME: new_utsname = new_utsname {
     release: pad_str("10.0.0"),
     version: pad_str("10.0.0"),
     machine: pad_str("10.0.0"),
-    domainname: pad_str("https://github.com/oscomp/starry-next"),
+    domainname: pad_str("https://github.com/BattiestStone4/WenyiOS"),
 };
 
 pub fn sys_uname(name: UserPtr<new_utsname>) -> LinuxResult<isize> {
