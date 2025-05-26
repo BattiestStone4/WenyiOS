@@ -235,13 +235,34 @@ fn handle_syscall(tf: &mut TrapFrame, syscall_num: usize) -> isize {
         Sysno::times => sys_times(tf.arg0().into()),
         Sysno::clock_gettime => sys_clock_gettime(tf.arg0() as _, tf.arg1().into()),
 
-        _ => {
-            warn!("Unimplemented syscall: {}", sysno);
-            Err(LinuxError::ENOSYS)
-        }
+        _ => stub_unimplemented(syscall_num),
     };
     let ans = result.unwrap_or_else(|err| -err.code() as _);
     time_stat_from_kernel_to_user();
     info!("[kernel] [syscall: {:?}] return 0x{:x}", sysno, ans);
     ans
+}
+
+fn stub_unimplemented(syscall_num: usize) -> Result<isize, LinuxError> {
+    warn!(
+        "Unimplemented syscall: {:?}, ENOSYS",
+        Sysno::from(syscall_num as u32)
+    );
+    Err(LinuxError::ENOSYS)
+}
+
+fn stub_bypass(syscall_num: usize) -> Result<isize, LinuxError> {
+    warn!(
+        "Unimplemented syscall: {:?}, bypassed",
+        Sysno::from(syscall_num as u32)
+    );
+    Ok(0)
+}
+
+fn stub_kill(syscall_num: usize) -> Result<isize, LinuxError> {
+    warn!(
+        "Unimplemented syscall: {:?}, killed",
+        Sysno::from(syscall_num as u32)
+    );
+    axtask::exit(LinuxError::ENOSYS as _)
 }
