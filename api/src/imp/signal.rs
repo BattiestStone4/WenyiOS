@@ -104,7 +104,6 @@ pub fn sys_kill(pid: i32, signo: u32) -> LinuxResult<isize> {
         return Ok(0);
     };
 
-
     let mut result = 0usize;
     let curr = current();
     match pid {

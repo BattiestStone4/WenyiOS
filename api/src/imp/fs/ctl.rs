@@ -8,12 +8,14 @@ use axerrno::{LinuxError, LinuxResult};
 use axfs::fops::DirEntry;
 use linux_raw_sys::general::{
     AT_FDCWD, AT_REMOVEDIR, DT_BLK, DT_CHR, DT_DIR, DT_FIFO, DT_LNK, DT_REG, DT_SOCK, DT_UNKNOWN,
-    linux_dirent64,
+    linux_dirent64, RENAME_EXCHANGE, RENAME_NOREPLACE, RENAME_WHITEOUT
 };
+
+use bitflags::bitflags;
 
 use crate::{
     file::{Directory, FileLike},
-    path::{HARDLINK_MANAGER, handle_file_path},
+    path::{HARDLINK_MANAGER, handle_file_path, resolve_path_with_parent},
     ptr::{UserConstPtr, UserPtr, nullable},
 };
 
@@ -262,4 +264,56 @@ pub fn sys_getcwd(buf: UserPtr<u8>, size: usize) -> LinuxResult<isize> {
     } else {
         Err(LinuxError::ERANGE)
     }
+}
+
+
+bitflags! {
+    #[derive(Debug)]
+    pub struct RenameFlags: u32 {
+        const NOREPLACE = RENAME_NOREPLACE;
+        const EXCHANGE = RENAME_EXCHANGE;
+        const WHITEOUT = RENAME_WHITEOUT;
+    }
+}
+
+#[cfg(target_arch = "x86_64")]
+pub fn sys_rename(
+    old_path: UserConstPtr<c_char>,
+    new_path: UserConstPtr<c_char>,
+) -> LinuxResult<isize> {
+    sys_renameat(AT_FDCWD, old_path, AT_FDCWD, new_path)
+}
+
+pub fn sys_renameat(
+    old_dirfd: i32,
+    old_path: UserConstPtr<c_char>,
+    new_dirfd: i32,
+    new_path: UserConstPtr<c_char>,
+) -> LinuxResult<isize> {
+    sys_renameat2(old_dirfd, old_path, new_dirfd, new_path, 0)
+}
+pub fn sys_renameat2(
+    old_dirfd: i32,
+    old_path: UserConstPtr<c_char>,
+    new_dirfd: i32,
+    new_path: UserConstPtr<c_char>,
+    flags: u32,
+) -> LinuxResult<isize> {
+    let old_path = old_path.get_as_str()?;
+    let new_path = new_path.get_as_str()?;
+    let flags = RenameFlags::from_bits_truncate(flags);
+    debug!(
+        "sys_renameat2 <= old_dirfd: {}, old_path: {:?}, new_dirfd: {}, new_path: {}, flags: {:#?}",
+        old_dirfd, old_path, new_dirfd, new_path, flags
+    );
+
+    let old_path = resolve_path_with_parent(old_dirfd, old_path)?;
+    let new_path = resolve_path_with_parent(new_dirfd, new_path)?;
+
+    if flags.contains(RenameFlags::NOREPLACE) && axfs::api::metadata(&new_path).is_ok() {
+        return Err(LinuxError::EEXIST);
+    }
+    // TODO:`EXCHANGE` and `WHITEOUT`
+    axfs::api::rename(&old_path, &new_path)?;
+    Ok(0)
 }
