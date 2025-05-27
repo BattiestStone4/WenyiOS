@@ -8,7 +8,7 @@ use axerrno::{LinuxError, LinuxResult};
 use axfs::fops::DirEntry;
 use linux_raw_sys::general::{
     AT_FDCWD, AT_REMOVEDIR, DT_BLK, DT_CHR, DT_DIR, DT_FIFO, DT_LNK, DT_REG, DT_SOCK, DT_UNKNOWN,
-    linux_dirent64, RENAME_EXCHANGE, RENAME_NOREPLACE, RENAME_WHITEOUT
+    RENAME_EXCHANGE, RENAME_NOREPLACE, RENAME_WHITEOUT, linux_dirent64,
 };
 
 use bitflags::bitflags;
@@ -270,7 +270,6 @@ pub fn sys_getcwd(buf: UserPtr<u8>, size: usize) -> LinuxResult<isize> {
         Err(LinuxError::ERANGE)
     }
 }
-
 
 bitflags! {
     #[derive(Debug)]
