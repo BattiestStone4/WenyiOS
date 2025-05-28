@@ -283,7 +283,7 @@ fn stub_bypass(syscall_num: usize) -> Result<isize, LinuxError> {
     Ok(0)
 }
 
-fn stub_kill(syscall_num: usize) -> Result<isize, LinuxError> {
+fn _stub_kill(syscall_num: usize) -> Result<isize, LinuxError> {
     warn!(
         "Unimplemented syscall: {:?}, killed",
         Sysno::from(syscall_num as u32)

@@ -1,6 +1,6 @@
 use core::ffi::c_char;
 
-use alloc::{string::ToString, vec::Vec};
+use alloc::{string::ToString, vec, vec::Vec};
 use axerrno::{LinuxError, LinuxResult};
 use axhal::arch::TrapFrame;
 use axtask::{TaskExtRef, current};
@@ -46,6 +46,16 @@ pub fn sys_execve(
     map_trampoline(&mut aspace)?;
     axhal::arch::flush_tlb(None);
 
+    let args = if path.ends_with(".sh") {
+        const BUSYBOX: &str = "/musl/busybox";
+        info!("[syscall: execve] shebang detected, calling sh...");
+        let mut new_args = vec![BUSYBOX.to_string(), "sh".to_string()];
+        new_args.extend(args);
+        new_args
+    } else {
+        args.to_vec()
+    };
+    
     let (entry_point, user_stack_base) =
         load_user_app(&mut aspace, &args, &envs).map_err(|_| {
             error!("Failed to load app {}", path);
