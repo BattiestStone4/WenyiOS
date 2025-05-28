@@ -82,6 +82,9 @@ fn handle_syscall(tf: &mut TrapFrame, syscall_num: usize) -> isize {
             tf.arg2().into(),
             tf.arg3() as _,
         ),
+        Sysno::sync => stub_bypass(syscall_num),
+        Sysno::fsync => stub_bypass(syscall_num),
+        Sysno::ftruncate => sys_ftruncate(tf.arg0() as _, tf.arg1() as _),
 
         // io mpx
         #[cfg(target_arch = "x86_64")]

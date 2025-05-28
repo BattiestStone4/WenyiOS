@@ -55,7 +55,7 @@ pub fn sys_execve(
     } else {
         args.to_vec()
     };
-    
+
     let (entry_point, user_stack_base) =
         load_user_app(&mut aspace, &args, &envs).map_err(|_| {
             error!("Failed to load app {}", path);

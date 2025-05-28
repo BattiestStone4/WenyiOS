@@ -1,6 +1,7 @@
 use core::any::Any;
 
 use alloc::sync::Arc;
+use alloc::vec;
 use axerrno::{AxResult, LinuxError, LinuxResult};
 use axio::{BufReader, PollState, prelude::*};
 use axsync::Mutex;
@@ -9,7 +10,10 @@ use linux_raw_sys::general::S_IFCHR;
 use super::Kstat;
 
 fn console_read_bytes(buf: &mut [u8]) -> AxResult<usize> {
-    let len = axhal::console::read_bytes(buf);
+    // we must make sure the buffer is in kernel memory
+    let mut kernel_buf = vec![0u8; buf.len()];
+    let len = axhal::console::read_bytes(&mut kernel_buf);
+    buf.copy_from_slice(&kernel_buf);
     for c in &mut buf[..len] {
         if *c == b'\r' {
             *c = b'\n';

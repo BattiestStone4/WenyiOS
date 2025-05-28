@@ -1,4 +1,4 @@
-use core::ffi::c_int;
+use core::ffi::{c_int, c_long};
 
 use alloc::vec;
 use axerrno::{LinuxError, LinuxResult};
@@ -171,4 +171,14 @@ pub fn sys_sendfile(
         do_sendfile(|buf| src.read(buf), dest.as_ref())
     }
     .map(|n| n as _)
+}
+
+pub fn sys_ftruncate(fd: c_int, length: c_long) -> LinuxResult<isize> {
+    let file_like = get_file_like(fd)?.into_any();
+    let api_file = file_like.downcast_ref::<File>().ok_or(LinuxError::EINVAL)?;
+    api_file
+        .inner()
+        .truncate(length as u64)
+        .map_err(|_| axerrno::LinuxError::EIO)?;
+    Ok(0)
 }

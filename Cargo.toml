@@ -22,6 +22,7 @@ axfeat = { git = "https://github.com/oscomp/arceos.git", features = [
     "smp",
 ] }
 
+axalloc = { git = "https://github.com/oscomp/arceos.git", features = ["page-alloc-4g"] }
 axconfig = { git = "https://github.com/oscomp/arceos.git" }
 axfs = { git = "https://github.com/oscomp/arceos.git" }
 axhal = { git = "https://github.com/oscomp/arceos.git", features = ["uspace"] }
