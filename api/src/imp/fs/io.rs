@@ -182,3 +182,24 @@ pub fn sys_ftruncate(fd: c_int, length: c_long) -> LinuxResult<isize> {
         .map_err(|_| axerrno::LinuxError::EIO)?;
     Ok(0)
 }
+
+pub fn sys_pread64(fd: c_int, buf: UserPtr<u8>, count: usize, offset: usize) -> LinuxResult<isize> {
+    let buf = buf.get_as_mut_slice(count)?;
+    let file = File::from_fd(fd)?;
+    let file = file.inner();
+    let read_len = file.read_at(offset as _, buf)?;
+    Ok(read_len as _)
+}
+
+pub fn sys_pwrite64(
+    fd: c_int,
+    buf: UserConstPtr<u8>,
+    count: usize,
+    offset: usize,
+) -> LinuxResult<isize> {
+    let buf = buf.get_as_slice(count)?;
+    let file = File::from_fd(fd)?;
+    let file = file.inner();
+    let write_len = file.write_at(offset as _, buf)?;
+    Ok(write_len as _)
+}
