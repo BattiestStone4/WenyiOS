@@ -1,10 +1,11 @@
 mod fs;
 mod futex;
+mod ipc;
 mod mm;
+mod resources;
 mod signal;
 mod sys;
 mod task;
 mod time;
-mod ipc;
 
-pub use self::{fs::*, futex::*, mm::*, signal::*, sys::*, task::*, time::*, ipc::*};
+pub use self::{fs::*, futex::*, ipc::*, mm::*, signal::*, sys::*, task::*, time::*, resources::*};

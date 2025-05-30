@@ -31,6 +31,7 @@ use spin::{Once, RwLock};
 use weak_map::WeakMap;
 
 use crate::{futex::FutexTable, time::TimeStat};
+use crate::resources::ResourceLimits;
 
 /// Create a new user task.
 pub fn new_user_task(
@@ -210,6 +211,9 @@ pub struct ProcessData {
 
     /// The futex table.
     pub futex_table: FutexTable,
+
+    /// resource limits
+    pub resource_limits: Arc<Mutex<ResourceLimits>>,
 }
 
 impl ProcessData {
@@ -236,6 +240,7 @@ impl ProcessData {
             )),
 
             futex_table: FutexTable::new(),
+            resource_limits: Arc::new(Mutex::new(ResourceLimits::new())),
         }
     }
 

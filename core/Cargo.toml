@@ -23,6 +23,7 @@ axerrno.workspace = true
 linkme.workspace = true
 memory_addr.workspace = true
 spin.workspace = true
+linux-raw-sys.workspace = true
 
 crate_interface = "0.1"
 kernel-elf-parser = "0.3"
@@ -31,3 +32,4 @@ percpu = "0.2.0"
 xmas-elf = "0.9"
 
 weak-map = { git = "https://github.com/Starry-OS/weak-map.git" }
+num_enum = { version = "0.7.3", default-features = false }
