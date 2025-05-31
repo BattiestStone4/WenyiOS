@@ -130,3 +130,85 @@ pub fn sys_statx(
 
     Ok(0)
 }
+
+/// statfs - get filesystem statistics
+/// Standard C library (libc, -lc)
+/// <https://man7.org/linux/man-pages/man2/statfs.2.html>
+#[repr(C)]
+#[derive(Debug, Default)]
+pub struct StatFs {
+    /// Type of filesystem (see below)
+    pub f_type: FsWord,
+    /// Optimal transfer block size
+    pub f_bsize: FsWord,
+    /// Total data blocks in filesystem
+    pub f_blocks: FsBlkCnt,
+    /// Free blocks in filesystem
+    pub f_bfree: FsBlkCnt,
+    /// Free blocks available to unprivileged user
+    pub f_bavail: FsBlkCnt,
+    /// Total inodes in filesystem
+    pub f_files: FsFilCnt,
+    /// Free inodes in filesystem
+    pub f_ffree: FsFilCnt,
+    /// Filesystem ID
+    pub f_fsid: FsId,
+    /// Maximum length of filenames
+    pub f_namelen: FsWord,
+    /// Fragment size (since Linux 2.6)
+    pub f_frsize: FsWord,
+    /// Mount flags of filesystem (since Linux 2.6.36)
+    pub f_flags: FsWord,
+    /// Padding bytes reserved for future use
+    pub f_spare: [FsWord; 5],
+}
+
+/// Type of miscellaneous file system fields. (typedef long __fsword_t)
+pub type FsWord = isize;
+
+/// Type to count file system blocks. (typedef unsigned long __fsblkcnt_t)
+pub type FsBlkCnt = usize;
+
+/// Type to count file system nodes. (typedef unsigned long __fsfilcnt_t)
+pub type FsFilCnt = usize;
+
+/// Type of file system IDs.
+#[repr(C)]
+#[derive(Debug, Default)]
+pub struct FsId {
+    /// raw value of the ID
+    pub val: [i32; 2],
+}
+
+pub struct FsType;
+
+impl FsType {
+    const EXT4_SUPER_MAGIC: u32 = 0xEF53;
+}
+
+// TODO: [dummy] return dummy values
+pub fn sys_statfs(path: UserConstPtr<c_char>, buf: UserPtr<StatFs>) -> LinuxResult<isize> {
+    let path = path.get_as_str()?;
+    let _ = handle_file_path(-1, path)?;
+
+    // dummy data
+    let stat_fs = StatFs {
+        f_type: FsType::EXT4_SUPER_MAGIC as _,
+        f_bsize: 4096,
+        f_namelen: 255,
+        f_frsize: 4096,
+        f_blocks: 100000,
+        f_bfree: 50000,
+        f_bavail: 40000,
+        f_files: 1000,
+        f_ffree: 500,
+        ..Default::default()
+    };
+    
+    unsafe {
+        let buf = buf.get_as_mut()?; 
+        *buf = stat_fs;
+    }
+    
+    Ok(0)
+}
