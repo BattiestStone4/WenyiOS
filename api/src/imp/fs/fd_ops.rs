@@ -6,11 +6,13 @@ use core::{
 use alloc::string::ToString;
 use axerrno::{AxError, LinuxError, LinuxResult};
 use axfs::fops::OpenOptions;
+use axtask::{current, TaskExtRef};
 use linux_raw_sys::general::{
     __kernel_mode_t, AT_FDCWD, F_DUPFD, F_DUPFD_CLOEXEC, F_SETFL, O_APPEND, O_CREAT, O_DIRECTORY,
     O_NONBLOCK, O_PATH, O_RDONLY, O_TRUNC, O_WRONLY,
 };
-
+use starry_core::resources::ResourceLimitType;
+use starry_core::task::ProcessData;
 use crate::{
     file::{Directory, FD_TABLE, File, FileLike, add_file_like, close_file_like, get_file_like},
     path::handle_file_path,
@@ -116,6 +118,20 @@ pub fn sys_close(fd: c_int) -> LinuxResult<isize> {
 }
 
 fn dup_fd(old_fd: c_int) -> LinuxResult<isize> {
+    let proc  = current().
+        task_ext()
+        .thread
+        .process()
+        .clone();
+    let proc_data: &ProcessData = proc.data().unwrap();
+    let limit = proc_data
+        .resource_limits
+        .lock()
+        .get_soft(&ResourceLimitType::NOFILE);
+    if FD_TABLE.read().count() >= limit as usize {
+        // 成功时返回新文件描述符，失败时返回 -1 并设置 errno 指示具体错误。
+        return Err(LinuxError::EMFILE);
+    }
     let f = get_file_like(old_fd)?;
     let new_fd = add_file_like(f)?;
     Ok(new_fd as _)
@@ -129,6 +145,21 @@ pub fn sys_dup(old_fd: c_int) -> LinuxResult<isize> {
 pub fn sys_dup2(old_fd: c_int, new_fd: c_int) -> LinuxResult<isize> {
     debug!("sys_dup2 <= old_fd: {}, new_fd: {}", old_fd, new_fd);
     let mut fd_table = FD_TABLE.write();
+
+    let proc  = current().
+        task_ext()
+        .thread
+        .process()
+        .clone();
+    let proc_data: &ProcessData = proc.data().unwrap();
+    let limit = proc_data
+        .resource_limits
+        .lock()
+        .get_soft(&ResourceLimitType::NOFILE);
+    if new_fd as u64 >= limit {
+        return Err(LinuxError::EBADF);
+    }
+    
     let f = fd_table
         .get(old_fd as _)
         .cloned()
