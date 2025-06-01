@@ -1,6 +1,7 @@
 use core::{any::Any, ffi::c_int};
 
 use alloc::{string::String, sync::Arc};
+use core::time::Duration;
 use axerrno::{LinuxError, LinuxResult};
 use axfs::fops::DirEntry;
 use axio::PollState;
@@ -13,6 +14,8 @@ use super::{FileLike, Kstat, get_file_like};
 pub struct File {
     inner: Mutex<axfs::fops::File>,
     path: String,
+    pub atime: Mutex<Duration>,
+    pub mtime: Mutex<Duration>,
 }
 
 impl File {
@@ -20,6 +23,8 @@ impl File {
         Self {
             inner: Mutex::new(inner),
             path,
+            atime: Mutex::new(Duration::default()),
+            mtime: Mutex::new(Duration::default()),
         }
     }
 
@@ -53,6 +58,8 @@ impl FileLike for File {
             size: metadata.size(),
             blocks: metadata.blocks(),
             blksize: 512,
+            atime: *self.atime.lock(),
+            mtime: *self.mtime.lock(),
             ..Default::default()
         })
     }

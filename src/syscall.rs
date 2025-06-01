@@ -52,7 +52,7 @@ fn handle_syscall(tf: &mut TrapFrame, syscall_num: usize) -> isize {
         ),
 
         // file ops
-        Sysno::utimensat => stub_bypass(syscall_num),
+        Sysno::utimensat => sys_utimensat(tf.arg0() as _, tf.arg1().into(), tf.arg2().into(), tf.arg3() as _),
 
         // fd ops
         Sysno::openat => sys_openat(

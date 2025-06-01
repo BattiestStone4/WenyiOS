@@ -6,11 +6,12 @@ mod stdio;
 use core::{any::Any, ffi::c_int};
 
 use alloc::{sync::Arc, vec::Vec};
+use core::time::Duration;
 use axerrno::{LinuxError, LinuxResult};
 use axio::PollState;
 use axns::{ResArc, def_resource};
 use flatten_objects::FlattenObjects;
-use linux_raw_sys::general::{stat, statx};
+use linux_raw_sys::general::{stat, statx, statx_timestamp};
 use spin::RwLock;
 
 pub use self::{
@@ -23,19 +24,26 @@ pub const AX_FILE_LIMIT: usize = 1024;
 
 #[derive(Debug, Clone, Copy)]
 pub struct Kstat {
-    ino: u64,
-    nlink: u32,
-    uid: u32,
-    gid: u32,
-    mode: u32,
-    size: u64,
-    blocks: u64,
-    blksize: u32,
+    pub dev: u64,
+    pub ino: u64,
+    pub nlink: u32,
+    pub mode: u32,
+    pub uid: u32,
+    pub gid: u32,
+    pub size: u64,
+    pub blksize: u32,
+    pub blocks: u64,
+    //TODO: when axfs is reconstructed, we will do this.
+    //pub rdev: DeviceId,
+    pub atime: Duration,
+    pub mtime: Duration,
+    pub ctime: Duration,
 }
 
 impl Default for Kstat {
     fn default() -> Self {
         Self {
+            dev: 0,
             ino: 1,
             nlink: 1,
             uid: 1,
@@ -44,6 +52,9 @@ impl Default for Kstat {
             size: 0,
             blocks: 0,
             blksize: 4096,
+            atime: Duration::default(),
+            mtime: Duration::default(),
+            ctime: Duration::default(),
         }
     }
 }
@@ -52,6 +63,7 @@ impl From<Kstat> for stat {
     fn from(value: Kstat) -> Self {
         // SAFETY: valid for stat
         let mut stat: stat = unsafe { core::mem::zeroed() };
+        stat.st_dev = value.dev as _;
         stat.st_ino = value.ino as _;
         stat.st_nlink = value.nlink as _;
         stat.st_mode = value.mode as _;
@@ -60,6 +72,13 @@ impl From<Kstat> for stat {
         stat.st_size = value.size as _;
         stat.st_blksize = value.blksize as _;
         stat.st_blocks = value.blocks as _;
+
+        stat.st_atime = value.atime.as_secs() as _;
+        stat.st_atime_nsec = value.atime.subsec_nanos() as _;
+        stat.st_mtime = value.mtime.as_secs() as _;
+        stat.st_mtime_nsec = value.mtime.subsec_nanos() as _;
+        stat.st_ctime = value.ctime.as_secs() as _;
+        stat.st_ctime_nsec = value.ctime.subsec_nanos() as _;
 
         stat
     }
@@ -78,6 +97,22 @@ impl From<Kstat> for statx {
         statx.stx_ino = value.ino as _;
         statx.stx_size = value.size as _;
         statx.stx_blocks = value.blocks as _;
+        //statx.stx_rdev_major = value.rdev.major();
+        //statx.stx_rdev_minor = value.rdev.minor();
+
+        fn time_to_statx(time: &Duration) -> statx_timestamp {
+            statx_timestamp {
+                tv_sec: time.as_secs() as _,
+                tv_nsec: time.subsec_nanos() as _,
+                __reserved: 0,
+            }
+        }
+        statx.stx_atime = time_to_statx(&value.atime);
+        statx.stx_ctime = time_to_statx(&value.ctime);
+        statx.stx_mtime = time_to_statx(&value.mtime);
+
+        statx.stx_dev_major = (value.dev >> 32) as _;
+        statx.stx_dev_minor = value.dev as _;
 
         statx
     }
