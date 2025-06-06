@@ -4,21 +4,25 @@ use core::{
 };
 
 use alloc::ffi::CString;
-use core::time::Duration;
 use axerrno::{LinuxError, LinuxResult};
 use axfs::fops::DirEntry;
-use axhal::time::{wall_time, TimeValue};
-use linux_raw_sys::general::{AT_FDCWD, AT_REMOVEDIR, DT_BLK, DT_CHR, DT_DIR, DT_FIFO, DT_LNK, DT_REG, DT_SOCK, DT_UNKNOWN, RENAME_EXCHANGE, RENAME_NOREPLACE, RENAME_WHITEOUT, linux_dirent64, timespec, UTIME_OMIT, UTIME_NOW};
+use axhal::time::wall_time;
+use core::time::Duration;
+use linux_raw_sys::general::{
+    AT_FDCWD, AT_REMOVEDIR, DT_BLK, DT_CHR, DT_DIR, DT_FIFO, DT_LNK, DT_REG, DT_SOCK, DT_UNKNOWN,
+    RENAME_EXCHANGE, RENAME_NOREPLACE, RENAME_WHITEOUT, UTIME_NOW, UTIME_OMIT, linux_dirent64,
+    timespec,
+};
 
 use bitflags::bitflags;
 
+use crate::file::{File, get_file_like};
+use crate::time::TimeValueLike;
 use crate::{
     file::{Directory, FileLike},
     path::{HARDLINK_MANAGER, handle_file_path, resolve_path_with_parent},
     ptr::{UserConstPtr, UserPtr, nullable},
 };
-use crate::file::{get_file_like, File};
-use crate::time::TimeValueLike;
 
 /// The ioctl() system call manipulates the underlying device parameters
 /// of special files.
@@ -327,7 +331,7 @@ pub fn sys_utimensat(
     dir_fd: i32,
     path: UserConstPtr<c_char>,
     times: UserConstPtr<timespec>,
-    flags: u32,
+    _flags: u32,
 ) -> LinuxResult<isize> {
     fn utime_to_duration(time: &timespec) -> Option<Duration> {
         match time.tv_nsec {
@@ -336,22 +340,22 @@ pub fn sys_utimensat(
             _ => Some(time.to_time_value()),
         }
     }
-    
+
     if times.is_null() {
         return Ok(0);
     }
-    
+
     let times = nullable!(times.get_as_slice(2))?;
     let (atime, mtime) = match times {
         Some([atime, mtime]) => (utime_to_duration(atime), utime_to_duration(mtime)),
         None => (Some(wall_time()), Some(wall_time())),
         _ => unreachable!(),
     };
-    
+
     if atime.is_none() && mtime.is_none() {
         return Ok(0);
     }
-    
+
     if path.is_null() {
         let file = get_file_like(dir_fd)?.into_any();
         let file = file.downcast_ref::<File>();
@@ -369,4 +373,3 @@ pub fn sys_utimensat(
     }
     Ok(0)
 }
-

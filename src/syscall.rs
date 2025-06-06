@@ -52,7 +52,12 @@ fn handle_syscall(tf: &mut TrapFrame, syscall_num: usize) -> isize {
         ),
 
         // file ops
-        Sysno::utimensat => sys_utimensat(tf.arg0() as _, tf.arg1().into(), tf.arg2().into(), tf.arg3() as _),
+        Sysno::utimensat => sys_utimensat(
+            tf.arg0() as _,
+            tf.arg1().into(),
+            tf.arg2().into(),
+            tf.arg3() as _,
+        ),
 
         // fd ops
         Sysno::openat => sys_openat(
@@ -167,8 +172,8 @@ fn handle_syscall(tf: &mut TrapFrame, syscall_num: usize) -> isize {
             tf.arg4().into(),
         ),
         #[cfg(target_arch = "x86_64")]
-        Sysno::access => stub_bypass(syscall_num),
-        Sysno::faccessat => stub_bypass(syscall_num),
+        Sysno::access => sys_access(tf.arg0() as _, tf.arg1().into(), tf.arg2() as _, tf.arg3() as _),
+        Sysno::faccessat => sys_faccessat2(tf.arg0() as _, tf.arg1().into(), tf.arg2() as _, tf.arg3() as _),
         Sysno::statfs => sys_statfs(tf.arg0().into(), tf.arg1().into()),
 
         // mm
@@ -198,7 +203,12 @@ fn handle_syscall(tf: &mut TrapFrame, syscall_num: usize) -> isize {
         Sysno::set_tid_address => sys_set_tid_address(tf.arg0()),
         #[cfg(target_arch = "x86_64")]
         Sysno::arch_prctl => sys_arch_prctl(tf, tf.arg0() as _, tf.arg1() as _),
-        Sysno::prlimit64 => sys_prlimit64(tf.arg0() as _, tf.arg1() as _, tf.arg2().into(), tf.arg3().into()),
+        Sysno::prlimit64 => sys_prlimit64(
+            tf.arg0() as _,
+            tf.arg1() as _,
+            tf.arg2().into(),
+            tf.arg3().into(),
+        ),
         Sysno::getrlimit => sys_getrlimit(tf.arg0() as _, tf.arg1().into()),
         Sysno::setrlimit => sys_setrlimit(tf.arg0() as _, tf.arg1().into()),
 

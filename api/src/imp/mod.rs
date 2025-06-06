@@ -8,4 +8,4 @@ mod sys;
 mod task;
 mod time;
 
-pub use self::{fs::*, futex::*, ipc::*, mm::*, signal::*, sys::*, task::*, time::*, resources::*};
+pub use self::{fs::*, futex::*, ipc::*, mm::*, resources::*, signal::*, sys::*, task::*, time::*};

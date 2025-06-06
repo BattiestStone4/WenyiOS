@@ -1,11 +1,11 @@
 use core::{any::Any, ffi::c_int};
 
 use alloc::{string::String, sync::Arc};
-use core::time::Duration;
 use axerrno::{LinuxError, LinuxResult};
 use axfs::fops::DirEntry;
 use axio::PollState;
 use axsync::{Mutex, MutexGuard};
+use core::time::Duration;
 use linux_raw_sys::general::S_IFDIR;
 
 use super::{FileLike, Kstat, get_file_like};

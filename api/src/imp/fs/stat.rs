@@ -2,8 +2,10 @@ use core::ffi::{c_char, c_int};
 
 use axerrno::{AxError, LinuxError, LinuxResult};
 use axfs::fops::OpenOptions;
-use linux_raw_sys::general::{AT_EMPTY_PATH, stat, statx};
+use bitflags::bitflags;
+use linux_raw_sys::general::{AT_EMPTY_PATH, R_OK, W_OK, X_OK, stat, statx};
 
+use crate::path::resolve_path_with_parent;
 use crate::{
     file::{Directory, File, FileLike, Kstat, get_file_like},
     path::handle_file_path,
@@ -205,10 +207,66 @@ pub fn sys_statfs(path: UserConstPtr<c_char>, buf: UserPtr<StatFs>) -> LinuxResu
         ..Default::default()
     };
     
-    unsafe {
-        let buf = buf.get_as_mut()?; 
-        *buf = stat_fs;
-    }
-    
+    let buf = buf.get_as_mut()?;
+    *buf = stat_fs;
+
     Ok(0)
+}
+
+#[cfg(target_arch = "x86_64")]
+pub fn sys_access(path: UserConstPtr<c_char>, mode: u32) -> LinuxResult<isize> {
+    use linux_raw_sys::general::AT_FDCWD;
+
+    sys_faccessat2(AT_FDCWD, path, mode, 0)
+}
+
+pub fn sys_faccessat2(
+    dirfd: c_int,
+    path: UserConstPtr<c_char>,
+    mode: u32,
+    flags: u32,
+) -> LinuxResult<isize> {
+    let path = nullable!(path.get_as_str())?;
+    
+    if mode == 0 {
+        return Ok(0);
+    };
+    
+    let mode = AccessFlags::from_bits(mode).ok_or(LinuxError::EINVAL)?;
+    let path = resolve_path_with_parent(dirfd, path.unwrap())?;
+    let mut options = OpenOptions::new();
+    options.read(true);
+    let permissions = if let Ok(file) = axfs::fops::File::open(&path, &options) {
+        file.get_attr()?.perm()
+    } else if let Ok(dir) = axfs::fops::Directory::open_dir(&path, &options) {
+        dir.get_attr()?.perm()
+    } else {
+        return Err(LinuxError::ENOENT);
+    };
+    
+    let mut access = true;
+    if mode.contains(AccessFlags::R_OK) {
+        access |= permissions.owner_readable();
+    }
+    if mode.contains(AccessFlags::W_OK) {
+        access |= permissions.owner_writable();
+    }
+    if mode.contains(AccessFlags::X_OK) {
+        access |= permissions.owner_executable();
+    }
+
+    if access {
+        Ok(0)
+    } else {
+        Err(LinuxError::EACCES)
+    }
+}
+
+bitflags! {
+    #[derive(Debug)]
+    pub struct AccessFlags: u32 {
+        const R_OK = R_OK;
+        const W_OK = W_OK;
+        const X_OK = X_OK;
+    }
 }

@@ -2,11 +2,10 @@ use axerrno::{LinuxError, LinuxResult};
 use axprocess::Pid;
 use axtask::{TaskExtRef, current};
 use core::ffi::c_int;
-use linux_raw_sys::general::{RLIM_NLIMITS, rlimit64};
 use starry_core::resources::{ResourceLimit, ResourceLimitType};
-use starry_core::task::{ProcessData, get_process, get_thread};
+use starry_core::task::{ProcessData, get_process};
 
-use crate::ptr::{UserConstPtr, UserPtr, nullable};
+use crate::ptr::{UserConstPtr, UserPtr};
 
 pub fn sys_prlimit64(
     pid: c_int,
@@ -78,6 +77,6 @@ fn do_getrlimit(resource: &ResourceLimitType, pid: Pid) -> LinuxResult<ResourceL
     };
 
     let proc_data: &ProcessData = proc.data().unwrap();
-    let mut limits = proc_data.resource_limits.lock();
+    let limits = proc_data.resource_limits.lock();
     Ok(limits.get(resource))
 }

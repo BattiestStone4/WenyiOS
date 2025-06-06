@@ -3,21 +3,21 @@ use core::{
     panic,
 };
 
+use crate::{
+    file::{Directory, FD_TABLE, File, FileLike, add_file_like, close_file_like, get_file_like},
+    path::handle_file_path,
+    ptr::UserConstPtr,
+};
 use alloc::string::ToString;
 use axerrno::{AxError, LinuxError, LinuxResult};
 use axfs::fops::OpenOptions;
-use axtask::{current, TaskExtRef};
+use axtask::{TaskExtRef, current};
 use linux_raw_sys::general::{
     __kernel_mode_t, AT_FDCWD, F_DUPFD, F_DUPFD_CLOEXEC, F_SETFL, O_APPEND, O_CREAT, O_DIRECTORY,
     O_NONBLOCK, O_PATH, O_RDONLY, O_TRUNC, O_WRONLY,
 };
 use starry_core::resources::ResourceLimitType;
 use starry_core::task::ProcessData;
-use crate::{
-    file::{Directory, FD_TABLE, File, FileLike, add_file_like, close_file_like, get_file_like},
-    path::handle_file_path,
-    ptr::UserConstPtr,
-};
 
 const O_EXEC: u32 = O_PATH;
 
@@ -118,11 +118,7 @@ pub fn sys_close(fd: c_int) -> LinuxResult<isize> {
 }
 
 fn dup_fd(old_fd: c_int) -> LinuxResult<isize> {
-    let proc  = current().
-        task_ext()
-        .thread
-        .process()
-        .clone();
+    let proc = current().task_ext().thread.process().clone();
     let proc_data: &ProcessData = proc.data().unwrap();
     let limit = proc_data
         .resource_limits
@@ -146,11 +142,7 @@ pub fn sys_dup2(old_fd: c_int, new_fd: c_int) -> LinuxResult<isize> {
     debug!("sys_dup2 <= old_fd: {}, new_fd: {}", old_fd, new_fd);
     let mut fd_table = FD_TABLE.write();
 
-    let proc  = current().
-        task_ext()
-        .thread
-        .process()
-        .clone();
+    let proc = current().task_ext().thread.process().clone();
     let proc_data: &ProcessData = proc.data().unwrap();
     let limit = proc_data
         .resource_limits
@@ -159,7 +151,7 @@ pub fn sys_dup2(old_fd: c_int, new_fd: c_int) -> LinuxResult<isize> {
     if new_fd as u64 >= limit {
         return Err(LinuxError::EBADF);
     }
-    
+
     let f = fd_table
         .get(old_fd as _)
         .cloned()
