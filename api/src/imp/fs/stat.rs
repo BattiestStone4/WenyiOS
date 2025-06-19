@@ -206,7 +206,7 @@ pub fn sys_statfs(path: UserConstPtr<c_char>, buf: UserPtr<StatFs>) -> LinuxResu
         f_ffree: 500,
         ..Default::default()
     };
-    
+
     let buf = buf.get_as_mut()?;
     *buf = stat_fs;
 
@@ -227,11 +227,11 @@ pub fn sys_faccessat2(
     flags: u32,
 ) -> LinuxResult<isize> {
     let path = nullable!(path.get_as_str())?;
-    
+
     if mode == 0 {
         return Ok(0);
     };
-    
+
     let mode = AccessFlags::from_bits(mode).ok_or(LinuxError::EINVAL)?;
     let path = resolve_path_with_parent(dirfd, path.unwrap())?;
     let mut options = OpenOptions::new();
@@ -243,7 +243,7 @@ pub fn sys_faccessat2(
     } else {
         return Err(LinuxError::ENOENT);
     };
-    
+
     let mut access = true;
     if mode.contains(AccessFlags::R_OK) {
         access |= permissions.owner_readable();

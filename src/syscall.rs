@@ -172,8 +172,18 @@ fn handle_syscall(tf: &mut TrapFrame, syscall_num: usize) -> isize {
             tf.arg4().into(),
         ),
         #[cfg(target_arch = "x86_64")]
-        Sysno::access => sys_access(tf.arg0() as _, tf.arg1().into(), tf.arg2() as _, tf.arg3() as _),
-        Sysno::faccessat => sys_faccessat2(tf.arg0() as _, tf.arg1().into(), tf.arg2() as _, tf.arg3() as _),
+        Sysno::access => sys_access(
+            tf.arg0() as _,
+            tf.arg1().into(),
+            tf.arg2() as _,
+            tf.arg3() as _,
+        ),
+        Sysno::faccessat => sys_faccessat2(
+            tf.arg0() as _,
+            tf.arg1().into(),
+            tf.arg2() as _,
+            tf.arg3() as _,
+        ),
         Sysno::statfs => sys_statfs(tf.arg0().into(), tf.arg1().into()),
 
         // mm
@@ -295,6 +305,32 @@ fn handle_syscall(tf: &mut TrapFrame, syscall_num: usize) -> isize {
         Sysno::shmat => sys_shmat(tf.arg0() as _, tf.arg1() as _, tf.arg2() as _),
         Sysno::shmctl => sys_shmctl(tf.arg0() as _, tf.arg1() as _, tf.arg2().into()),
         Sysno::shmdt => sys_shmdt(tf.arg0() as _),
+
+        // net
+        Sysno::socket => sys_socket(tf.arg0() as _, tf.arg1() as _, tf.arg2() as _),
+        Sysno::bind => sys_bind(tf.arg0() as _, tf.arg1().into(), tf.arg2() as _),
+        Sysno::connect => sys_connect(tf.arg0() as _, tf.arg1().into(), tf.arg2() as _),
+        Sysno::getsockname => sys_getsockname(tf.arg0() as _, tf.arg1().into(), tf.arg2().into()),
+        Sysno::getpeername => sys_getpeername(tf.arg0() as _, tf.arg1().into(), tf.arg2().into()),
+        Sysno::setsockopt => Ok(0),
+        Sysno::listen => sys_listen(tf.arg0() as _, tf.arg1() as _),
+        Sysno::accept => sys_accept(tf.arg0() as _, tf.arg1().into(), tf.arg2().into()),
+        Sysno::sendto => sys_sendto(
+            tf.arg0() as _,
+            tf.arg1().into(),
+            tf.arg2() as _,
+            tf.arg3() as _,
+            tf.arg4().into(),
+            tf.arg5() as _,
+        ),
+        Sysno::recvfrom => sys_recvfrom(
+            tf.arg0() as _,
+            tf.arg1().into(),
+            tf.arg2() as _,
+            tf.arg3() as _,
+            tf.arg4().into(),
+            tf.arg5().into(),
+        ),
 
         _ => stub_unimplemented(syscall_num),
     };
